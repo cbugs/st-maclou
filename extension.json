@@ -1,0 +1,6 @@
+{
+  "id": "products-view-dev",
+  "name": "St-Maclou Products View",
+  "srcdoc": "./build/index.html",
+  "sidebar": true
+}
