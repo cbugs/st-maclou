@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { render } from 'react-dom';
 import PropTypes from 'prop-types';
 import BootstrapTable from 'react-bootstrap-table-next';
-import filterFactory, { textFilter, dateFilter, Comparator } from 'react-bootstrap-table2-filter';
+import filterFactory, { textFilter, dateFilter, Comparator, customFilter } from 'react-bootstrap-table2-filter';
 import paginationFactory , { PaginationProvider, PaginationListStandalone } from 'react-bootstrap-table2-paginator';
 import ToolkitProvider, { CSVExport } from 'react-bootstrap-table2-toolkit';
 
@@ -10,7 +10,6 @@ import { init, locations } from 'contentful-ui-extensions-sdk';
 import { Button, Spinner, Dropdown, DropdownList, IconButton } from '@contentful/forma-36-react-components';
 import {createClient} from 'contentful'
 import '@contentful/forma-36-react-components/dist/styles.css';
-import '@contentful/forma-36-fcss';
 import './index.css';
 
 const headerSortingStyle = { backgroundColor: '#c8e6c9' };
@@ -21,13 +20,26 @@ var client = createClient({
   accessToken: "u7rCwc1dyYc_OvBPVqXgv3irNjDeeeC_3Z9LVDc_wEk",
   space : 'r3ehowzhs9ex',
   environment:'staging'
-})
+});
+
+function multiValuesFilter(filterVal,data,columnName){
+	let filterValArr  = filterVal.split(",");
+	let allValues = [];
+	for(var fv of filterValArr){
+		let values = data.filter(function(value){
+			return fv.length>0 && value[columnName].toString().indexOf(fv)>=0;
+		});
+		allValues= [...new Set(allValues.concat(values))];
+	}
+
+	return allValues;
+}
 
 const columns = [
 	{
 		dataField: 'produit_nom',
 		text: 'Nom',
-		filter : textFilter(),
+		filter : textFilter({onFilter: function(filterVal,data){return multiValuesFilter(filterVal,data,'produit_nom')}}),
 		hidden : false,
 		sort: true,
 		csvExport: true,
@@ -36,7 +48,7 @@ const columns = [
 	{
 		dataField: 'produit_qct',
 		text: 'QCT',
-		filter : textFilter(),
+		filter: textFilter({onFilter: function(filterVal,data){return multiValuesFilter(filterVal,data,'produit_qct')}}),
 		hidden : false,
 		sort: true,
 		csvExport: true,
@@ -45,7 +57,7 @@ const columns = [
 	{
 		dataField: 'produit_meta_title',
 		text: 'Meta Title',
-		filter : textFilter(),
+		filter : textFilter({onFilter: function(filterVal,data){return multiValuesFilter(filterVal,data,'produit_meta_title')}}),
 		hidden : false,
 		sort : true,
 		csvExport: true,
@@ -54,7 +66,7 @@ const columns = [
 	{
 		dataField : 'produit_meta_desc',
 		text: 'Meta Description',
-		filter : textFilter(),
+		filter : textFilter({onFilter: function(filterVal,data){return multiValuesFilter(filterVal,data,'produit_meta_desc')}}),
 		hidden : false,
 		sort : true,
 		csvExport: true,
@@ -63,7 +75,7 @@ const columns = [
 	{
 		dataField : 'friendly_url',
 		text: 'Friendly URL',
-		filter : textFilter(),
+		filter : textFilter({onFilter: function(filterVal,data){return multiValuesFilter(filterVal,data,'friendly_url')}}),
 		hidden : true,
 		sort : true,
 		csvExport: false,
@@ -92,7 +104,7 @@ const columns = [
 class PageExtension extends React.Component {
 	constructor(props) {
 		super(props);
-		this.state = { columns, dropdownOpen : false, tableResult : [], loading: true }
+		this.state = { columns, dropdownOpen : false, tableResult : [], loading: true, progress: 0 }
 
 		this.setOpen = this.setOpen.bind(this);
 		this.retrieveEntries = this.retrieveEntries.bind(this);
@@ -144,10 +156,13 @@ class PageExtension extends React.Component {
 			})
 			
 			this.i += 500;
+
 			
-			if (this.entriesItemsLength < 500) {
+			// if (this.entriesItemsLength < 500) {
 				break;
-			}
+			// }
+			let newProgress = (this.i/12000)*100;
+			this.setState({progress: (newProgress>100?100:newProgress)})
 		}
 		
 		for (let i = 0; i < this.state.tableResult.length; i++) {
@@ -164,7 +179,7 @@ class PageExtension extends React.Component {
 						columns.push({
 							dataField : val,
 							text : textValue,
-							filter : textFilter(),
+							filter : textFilter({onFilter: function(filterVal,data){return multiValuesFilter(filterVal,data,val)}}),
 							hidden : true,
 							sort : true,
 							csvExport : false,
@@ -350,7 +365,7 @@ class PageExtension extends React.Component {
 			<Spinner
 				size={'large'}
 		  	/> 
-			<br/>Fetching your products...<br/> Please wait....
+			<br/>Fetching products...<br/> Please wait.... <br/> {parseInt(this.state.progress)} %
 			</div>
 			) ;
 		}
